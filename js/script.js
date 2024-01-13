@@ -1,26 +1,74 @@
 document.getElementById("search-button").addEventListener("click", function () {
     const searchField = document.getElementById("search-field");
     const searchText = searchField.value;
-    searchField.value = "";
-    loadData(searchText);
+
+    if (searchText === "") {
+        alert("Search field is empty!");
+    } else {
+        searchField.value = "";
+        clearContent();
+        loadData(searchText);
+    }
 });
 
+// clear previous search results
+const clearContent = () => {
+    const booksContainer = document.getElementById("books-container");
+    booksContainer.innerHTML = "";
+
+    const searchInfoDiv = document.getElementById("search-info");
+    searchInfoDiv.classList.add("d-none");
+
+    const errorMsgElement = document.getElementById("error-message");
+    errorMsgElement.classList.add("d-none");
+};
+
 const loadData = (searchText) => {
-    const url = `https://openlibrary.org/search.json?q=${searchText}`;
+    toggleSpinner(true);
+    const url = `https://openlibrary.org/search.json?q=${searchText}&limit=40`;
     fetch(url)
         .then((res) => res.json())
         .then((data) => displayData(data.docs))
-        .catch((err) => console.log(err));
+        .catch((err) => displayError(1, err));
 };
 
+// display error messages
+const displayError = (errId, err = "") => {
+    const errorMsgElement = document.getElementById("error-message");
+    if (errId === 1) {
+        console.log(err);
+        errorMsgElement.textContent = "Something went wrong!";
+    } else {
+        errorMsgElement.textContent = "No result found!";
+    }
+    errorMsgElement.classList.remove("d-none");
+};
+
+// display books data & search info
 const displayData = (books) => {
-    const booksContainer = document.getElementById("books-container");
-    books.forEach((book) => {
-        const card = createCard(book);
-        booksContainer.appendChild(card);
-    });
+    toggleSpinner(false);
+
+    if (books.length === 0) {
+        displayError(2);
+    } else {
+        const booksContainer = document.getElementById("books-container");
+        const totalSearchResult = books.length;
+        let totalDataDisplayed = 0;
+
+        books.slice(0, 10).forEach((book) => {
+            totalDataDisplayed++;
+            const card = createCard(book);
+            booksContainer.appendChild(card);
+        });
+
+        // update search result count
+        const searchInfoDiv = document.getElementById("search-info");
+        searchInfoDiv.innerText = `Displaying ${totalDataDisplayed} of ${totalSearchResult} search results.`;
+        searchInfoDiv.classList.remove("d-none");
+    }
 };
 
+// create books cards
 const createCard = (book) => {
     const { author_name, cover_i, title, publisher, first_publish_year } = book;
 
@@ -57,4 +105,10 @@ const createCard = (book) => {
         </div>
     `;
     return cardDiv;
+};
+
+// toggle visibility of loading spinner
+const toggleSpinner = (isLoading) => {
+    const spinnerDiv = document.getElementById("loading-spinner");
+    spinnerDiv.classList.toggle("d-none", !isLoading);
 };
